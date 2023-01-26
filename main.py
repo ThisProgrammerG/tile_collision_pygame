@@ -59,21 +59,20 @@ class Entity(Drawable):
         horizontal_rect = self.rect.move(self.velocity.x, 0)
         vertical_rect = self.rect.move(0, self.velocity.y)
 
-        for obj in objects:
-            if obj.rect.colliderect(horizontal_rect):
+        for other in objects:
+            if horizontal_rect.colliderect(other):
                 if self.velocity.x > 0:
-                    self.rect.right = obj.rect.left
-                if self.velocity.x < 0:
-                    self.rect.left = obj.rect.right
+                    self.rect.right = other.rect.left
+                elif self.velocity.x < 0:
+                    self.rect.left = other.rect.right
                 self.velocity.x = 0
-            if obj.rect.colliderect(vertical_rect):
+            if vertical_rect.colliderect(other):
                 if self.velocity.y > 0:
-                    self.rect.bottom = obj.rect.top
+                    self.rect.bottom = other.rect.top
                     self.grounded = True
-                if self.velocity.y < 0:
-                    self.rect.top = obj.rect.bottom
+                elif self.velocity.y < 0:
+                    self.rect.top = other.rect.bottom
                 self.velocity.y = 0
-
 
         self.position.update(self.rect.center)
 
