@@ -1,9 +1,12 @@
+import random
 
 import pygame
 
+pygame.init()
 
 SIZE = pygame.Rect((0, 0), (900, 500))
 GRAVITY = pygame.Vector2(0, 3.5)
+FONT = pygame.font.SysFont('Consolas', 24, bold=True)
 
 class Drawable:
     def __init__(self, size, position, color, anchor='center'):
@@ -24,10 +27,16 @@ class Entity(Drawable):
     def __init__(self, size, position, color):
         super().__init__(size, position, color)
         self.speed = 5
+        self.original_position = pygame.Vector2(position)
+        self.reset()
+
+    def reset(self):
         self.directions = {direction: False for direction in ['up', 'down', 'left', 'right']}
         self.acceleration = pygame.Vector2()
         self.velocity = pygame.Vector2()
         self.grounded = False
+        self.position = self.original_position.copy()
+        self.rect.center = self.position
 
     def handle_events(self, events):
         pass
@@ -55,7 +64,7 @@ class Entity(Drawable):
 
     def handle_collision(self, objects):
         """ Handle collision BEFORE velocity is added to position BUT after movement and physics, in that order. """
-
+        self.grounded = False  # TODO Grounded is not being set
         horizontal_rect = self.rect.move(self.velocity.x, 0)
         vertical_rect = self.rect.move(0, self.velocity.y)
 
@@ -78,7 +87,6 @@ class Entity(Drawable):
 
     def handle_forces(self):
         if not self.grounded:
-            print('Applying gravity.')
             self.apply_force(GRAVITY)
 
         self.velocity += self.acceleration
@@ -98,7 +106,6 @@ class Entity(Drawable):
         self.handle_movement()
         self.handle_forces()
 
-        self.grounded = False  # TODO Grounded is not being set
         for group in collision_group:
             self.handle_collision(group)
 
@@ -107,6 +114,28 @@ class Entity(Drawable):
 
 class Tile(Drawable):
     pass
+
+def ai_controls(self, events):
+    self.speed = 1
+    min_duration, max_duration = 10, 30
+    directions = ['left', 'right', None]
+    if not hasattr(self, 'duration'):
+        self.direction = random.choice(directions)
+        self.duration = random.randint(min_duration, max_duration)
+
+    if self.duration <= 0:
+        self.direction = random.choice(directions)
+        self.duration = random.randint(min_duration, max_duration)
+
+    if self.direction:
+        self.directions = {direction: False for direction in ['up', 'down', 'left', 'right']}
+        self.directions[self.direction] = True
+    self.duration -= 1
+
+    if self.rect.left <= 0:
+        self.direction = 'right'
+    elif self.rect.right >= SIZE.width:
+        self.direction = 'left'
 
 def player_control(self, events):
     for event in events:
@@ -130,6 +159,7 @@ def player_control(self, events):
                 self.directions['down'] = False
 
 def main():
+    pygame.display.set_caption('Tile Collision Example')
     screen = pygame.display.set_mode(SIZE.size)
     clock = pygame.time.Clock()
     running = True
@@ -139,11 +169,14 @@ def main():
 
     enemy_1 = Entity(size=(50, 75), position=(500, 200), color='purple')
     enemy_2 = Entity(size=(50, 75), position=(100, 200), color='red')
+    enemy_1.handle_events = lambda game_events: ai_controls(enemy_1, game_events)
+    enemy_2.handle_events = lambda game_events: ai_controls(enemy_2, game_events)
 
     tile_ground = Tile(size=(SIZE.width * 4, 100), position=(SIZE.width // 2, SIZE.height - 50), color='brown')
-    tile_1 = Tile(size=(200, 50), position=(200, 300), color='brown')
-    tile_2 = Tile(size=(200, 50), position=(700, 375), color='brown')
+    tile_1 = Tile(size=(200, 50), position=(200, tile_ground.rect.top - player.rect.height - 25), color='brown')
+    tile_2 = Tile(size=(200, 50), position=(700, tile_ground.rect.top - 25), color='brown')
 
+    message = FONT.render('Press R to reset.', True, 'white')
     players = [player]
     enemies = [enemy_1, enemy_2]
     tiles = [tile_ground, tile_1, tile_2]
@@ -156,6 +189,9 @@ def main():
         for event in events:
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    [obj.reset() for obj in players + enemies]
 
         for entity in players:
             entity.update(events, collision_group=[enemies, tiles])
@@ -168,6 +204,7 @@ def main():
         for tile in tiles:
             tile.render(screen)
 
+        screen.blit(message, (0, 0))
         pygame.display.update()
 
     pygame.quit()
