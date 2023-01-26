@@ -3,7 +3,7 @@ import pygame
 
 
 SIZE = pygame.Rect((0, 0), (900, 500))
-GRAVITY = pygame.Vector2(0, 1)
+GRAVITY = pygame.Vector2(0, 3)
 
 class Drawable:
     def __init__(self, size, position, color, anchor='center'):
@@ -61,21 +61,25 @@ class Entity(Drawable):
         # TODO moving left and right while on top near corners. Already colliding
         # TODO have to take velocity into consideration, if velocity would collide move back.
         # TODO but movement is already calculated into the rect
+
         for obj in objects:
-            if rect.colliderect(obj):
-                if rect.right > obj.rect.left > rect.left:
+            if obj.rect.colliderect(rect.x + self.velocity.x, rect.y, rect.width, rect.height):
+                if self.velocity.x > 0:
                     rect.right = obj.rect.left
-                elif rect.left < obj.rect.right < rect.right:
+                if self.velocity.x < 0:
                     rect.left = obj.rect.right
-            if rect.colliderect(obj):
-                if rect.top < obj.rect.top:
+                self.velocity.x = 0
+
+            if obj.rect.colliderect(rect.x, rect.y + self.velocity.y, rect.width, rect.height):
+                if self.velocity.y > 0:
                     rect.bottom = obj.rect.top
                     self.grounded = True
-                elif rect.bottom > obj.rect.bottom:
+                if self.velocity.y < 0:
                     rect.top = obj.rect.bottom
+                self.velocity.y = 0
 
         self.position.update(rect.center)
-        self.rect.center = self.position
+        #self.rect.center = self.position
 
     def handle_forces(self):
         if not self.grounded:
