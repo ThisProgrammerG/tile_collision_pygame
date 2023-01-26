@@ -3,7 +3,7 @@ import pygame
 
 
 SIZE = pygame.Rect((0, 0), (900, 500))
-GRAVITY = pygame.Vector2(0, 3)
+GRAVITY = pygame.Vector2(0, 3.5)
 
 class Drawable:
     def __init__(self, size, position, color, anchor='center'):
@@ -35,7 +35,7 @@ class Entity(Drawable):
     def apply_force(self, force):
         self.velocity += force
 
-    def move(self):
+    def handle_movement(self):
         if not (self.directions['left'] and self.directions['right']):
             self.acceleration.x = 0
             self.velocity.x = 0
@@ -54,35 +54,32 @@ class Entity(Drawable):
             self.acceleration.y += self.speed
 
     def handle_collision(self, objects):
-        self.grounded = False
-        rect = self.rect.copy()
-        #print('Collision:', self.velocity)
+        """ Handle collision BEFORE velocity is added to position BUT after movement and physics, in that order. """
 
-        # TODO moving left and right while on top near corners. Already colliding
-        # TODO have to take velocity into consideration, if velocity would collide move back.
-        # TODO but movement is already calculated into the rect
+        horizontal_rect = self.rect.move(self.velocity.x, 0)
+        vertical_rect = self.rect.move(0, self.velocity.y)
 
         for obj in objects:
-            if obj.rect.colliderect(rect.x + self.velocity.x, rect.y, rect.width, rect.height):
+            if obj.rect.colliderect(horizontal_rect):
                 if self.velocity.x > 0:
-                    rect.right = obj.rect.left
+                    self.rect.right = obj.rect.left
                 if self.velocity.x < 0:
-                    rect.left = obj.rect.right
+                    self.rect.left = obj.rect.right
                 self.velocity.x = 0
-
-            if obj.rect.colliderect(rect.x, rect.y + self.velocity.y, rect.width, rect.height):
+            if obj.rect.colliderect(vertical_rect):
                 if self.velocity.y > 0:
-                    rect.bottom = obj.rect.top
+                    self.rect.bottom = obj.rect.top
                     self.grounded = True
                 if self.velocity.y < 0:
-                    rect.top = obj.rect.bottom
+                    self.rect.top = obj.rect.bottom
                 self.velocity.y = 0
 
-        self.position.update(rect.center)
-        #self.rect.center = self.position
+
+        self.position.update(self.rect.center)
 
     def handle_forces(self):
         if not self.grounded:
+            print('Applying gravity.')
             self.apply_force(GRAVITY)
 
         self.velocity += self.acceleration
@@ -97,13 +94,12 @@ class Entity(Drawable):
         if abs(self.velocity.y) <= 0.1:
             self.velocity.y = 0
 
-
-
     def update(self, events, collision_group=None):
         self.handle_events(events)
-        self.move()
+        self.handle_movement()
         self.handle_forces()
 
+        self.grounded = False  # TODO Grounded is not being set
         for group in collision_group:
             self.handle_collision(group)
 
@@ -150,7 +146,7 @@ def main():
     tile_2 = Tile(size=(200, 50), position=(700, 375), color='brown')
 
     players = [player]
-    enemies = []  # [enemy_1, enemy_2]
+    enemies = [enemy_1, enemy_2]
     tiles = [tile_ground, tile_1, tile_2]
 
     while running:
