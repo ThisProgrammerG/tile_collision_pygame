@@ -58,18 +58,16 @@ class Entity(Drawable):
         rect = self.rect.copy()
         #print('Collision:', self.velocity)
 
-        # TODO moving left and right while on top near corners
-        if abs(self.velocity.x) > 0:
-            for obj in objects:
-                if rect.colliderect(obj):
+        # TODO moving left and right while on top near corners. Already colliding
+        for obj in objects:
+            if rect.colliderect(obj):
+                if abs(self.velocity.x) > 0:
                     if rect.right > obj.rect.left > rect.left:
                         rect.right = obj.rect.left
                     elif rect.left < obj.rect.right < rect.right:
                         rect.left = obj.rect.right
-
-        if abs(self.velocity.y) > 0:
-            for obj in objects:
-                if rect.colliderect(obj):
+            if rect.colliderect(obj):
+                if abs(self.velocity.y) > 0:
                     if rect.top < obj.rect.top:
                         rect.bottom = obj.rect.top
                         self.grounded = True
@@ -157,9 +155,10 @@ def main():
                 running = False
 
         for entity in players:
-            entity.update(events)
             entity.handle_collision(enemies)
             entity.handle_collision(tiles)
+            entity.update(events)
+
             entity.render(screen)
 
         for entity in enemies:
