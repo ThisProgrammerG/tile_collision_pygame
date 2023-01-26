@@ -59,20 +59,20 @@ class Entity(Drawable):
         #print('Collision:', self.velocity)
 
         # TODO moving left and right while on top near corners. Already colliding
+        # TODO have to take velocity into consideration, if velocity would collide move back.
+        # TODO but movement is already calculated into the rect
         for obj in objects:
             if rect.colliderect(obj):
-                if abs(self.velocity.x) > 0:
-                    if rect.right > obj.rect.left > rect.left:
-                        rect.right = obj.rect.left
-                    elif rect.left < obj.rect.right < rect.right:
-                        rect.left = obj.rect.right
+                if rect.right > obj.rect.left > rect.left:
+                    rect.right = obj.rect.left
+                elif rect.left < obj.rect.right < rect.right:
+                    rect.left = obj.rect.right
             if rect.colliderect(obj):
-                if abs(self.velocity.y) > 0:
-                    if rect.top < obj.rect.top:
-                        rect.bottom = obj.rect.top
-                        self.grounded = True
-                    elif rect.bottom > obj.rect.bottom:
-                        rect.top = obj.rect.bottom
+                if rect.top < obj.rect.top:
+                    rect.bottom = obj.rect.top
+                    self.grounded = True
+                elif rect.bottom > obj.rect.bottom:
+                    rect.top = obj.rect.bottom
 
         self.position.update(rect.center)
         self.rect.center = self.position
@@ -93,13 +93,17 @@ class Entity(Drawable):
         if abs(self.velocity.y) <= 0.1:
             self.velocity.y = 0
 
-        self.position += self.velocity
 
-    def update(self, events):
+
+    def update(self, events, collision_group=None):
         self.handle_events(events)
         self.move()
         self.handle_forces()
 
+        for group in collision_group:
+            self.handle_collision(group)
+
+        self.position += self.velocity
         self.rect.center = self.position
 
 class Tile(Drawable):
@@ -155,15 +159,11 @@ def main():
                 running = False
 
         for entity in players:
-            entity.handle_collision(enemies)
-            entity.handle_collision(tiles)
-            entity.update(events)
-
+            entity.update(events, collision_group=[enemies, tiles])
             entity.render(screen)
 
         for entity in enemies:
-            entity.update(None)
-            entity.handle_collision(tiles)
+            entity.update(None, collision_group=[tiles])
             entity.render(screen)
 
         for tile in tiles:
